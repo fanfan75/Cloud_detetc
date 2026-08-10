@@ -11,8 +11,9 @@ from torchvision import models
 from dataset import load_dataset
 
 
-def build_model(num_classes: int) -> nn.Module:
-    model = models.resnet18(weights=models.ResNet18_Weights.IMAGENET1K_V1)
+def build_model(num_classes: int, pretrained: bool = True) -> nn.Module:
+    weights = models.ResNet18_Weights.IMAGENET1K_V1 if pretrained else None
+    model = models.resnet18(weights=weights)
     model.fc = nn.Linear(model.fc.in_features, num_classes)
     return model
 
@@ -29,7 +30,7 @@ def train(args):
 
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    best_acc = 0.0
+    best_acc = -1.0
 
     for epoch in range(args.epochs):
         model.train()

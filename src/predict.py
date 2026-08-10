@@ -14,7 +14,7 @@ from weather import get_current_weather
 def load_model(checkpoint_dir: str, device):
     checkpoint_dir = Path(checkpoint_dir)
     classes = json.loads((checkpoint_dir / "classes.json").read_text())
-    model = build_model(len(classes))
+    model = build_model(len(classes), pretrained=False)
     model.load_state_dict(torch.load(checkpoint_dir / "best_model.pt", map_location=device))
     model.to(device)
     model.eval()
