@@ -1,6 +1,17 @@
-data/
-models/
+/data/
+/models/
+/tflite_model/
 __pycache__/
 *.pyc
 .venv/
 *.egg-info/
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/captures/
+android/.cxx/
