@@ -24,7 +24,7 @@ def train(args):
     train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True, num_workers=2)
     val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False, num_workers=2)
 
-    model = build_model(len(classes)).to(device)
+    model = build_model(len(classes), pretrained=args.pretrained).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
@@ -72,6 +72,12 @@ def parse_args():
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--val-split", type=float, default=0.2)
+    parser.add_argument(
+        "--no-pretrained",
+        dest="pretrained",
+        action="store_false",
+        help="N'utilise pas les poids ImageNet pré-entraînés (utile sans accès internet)",
+    )
     return parser.parse_args()
 
 
