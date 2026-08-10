@@ -1,6 +1,7 @@
 /data/
 /models/
 /tflite_model/
+/tflite_model_v2/
 __pycache__/
 *.pyc
 .venv/
