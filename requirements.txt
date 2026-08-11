@@ -4,7 +4,8 @@ Pillow>=10.0
 requests>=2.31
 
 # Pour src/train_tflite.py (export du modèle embarqué dans l'app Android).
-# Pinné à 2.17.x pour rester compatible avec org.tensorflow:tensorflow-lite:2.17.0
-# côté Android : une version pip plus récente peut émettre un op-set que le
-# runtime TFLite mobile ne reconnaît pas encore, ce qui fait planter Interpreter().
-tensorflow==2.17.1
+# Pinné exactement sur la version de org.tensorflow:tensorflow-lite côté Android
+# (voir android/app/build.gradle.kts) : une version pip plus récente peut émettre
+# un op-set que le runtime TFLite mobile ne reconnaît pas encore, ce qui fait
+# planter Interpreter() au chargement du modèle.
+tensorflow==2.16.1
