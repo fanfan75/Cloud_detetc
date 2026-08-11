@@ -2,6 +2,7 @@
 /models/
 /tflite_model/
 /tflite_model_v2/
+/tflite_model_v3/
 __pycache__/
 *.pyc
 .venv/
