@@ -88,8 +88,14 @@ jobs:
           script: |
             adb logcat -c
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            # Accorde la permission caméra AVANT le lancement pour exercer le vrai chemin
+            # de code CameraX + TFLite (jamais atteint si on laisse la boîte de dialogue
+            # sans réponse, ce qui a fait passer à côté du crash réel la première fois).
+            adb shell pm grant com.clouddetect.app android.permission.CAMERA
             adb shell am start -n com.clouddetect.app/.MainActivity
-            sleep 12
+            sleep 20
+            echo "===== APP PROCESS STATUS (absent = a probablement crashé) ====="
+            adb shell "ps -A | grep clouddetect" || echo "Process clouddetect introuvable."
             echo "===== FULL LOGCAT (buffered) ====="
             adb logcat -d
             echo "===== CRASH SUMMARY (AndroidRuntime / FATAL / clouddetect) ====="

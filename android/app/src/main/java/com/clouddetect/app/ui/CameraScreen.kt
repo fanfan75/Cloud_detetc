@@ -3,7 +3,12 @@ package com.clouddetect.app.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.ImageFormat
 import android.graphics.Matrix
+import android.graphics.Rect
+import android.graphics.YuvImage
+import android.util.Log
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
@@ -41,9 +46,11 @@ import androidx.core.content.ContextCompat
 import com.clouddetect.app.data.CLOUD_DATABASE
 import com.clouddetect.app.ml.ClassificationResult
 import com.clouddetect.app.ml.CloudClassifier
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.Executors
 
 private const val CLASSIFICATION_INTERVAL_MS = 800L
+private const val TAG = "CameraScreen"
 
 @Composable
 fun CameraScreen() {
@@ -71,9 +78,20 @@ fun CameraScreen() {
         return
     }
 
-    val classifier = remember { CloudClassifier(context) }
+    val classifier = remember {
+        runCatching { CloudClassifier(context) }
+            .onFailure { Log.e(TAG, "Échec du chargement du modèle TFLite", it) }
+            .getOrNull()
+    }
     var result by remember { mutableStateOf<ClassificationResult?>(null) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
+
+    if (classifier == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Impossible de charger le modèle de reconnaissance.")
+        }
+        return
+    }
 
     Box(Modifier.fillMaxSize()) {
         AndroidView(
@@ -88,21 +106,28 @@ fun CameraScreen() {
                         it.setSurfaceProvider(previewView.surfaceProvider)
                     }
 
+                    // Format YUV_420_888 par défaut : c'est le seul format de sortie garanti
+                    // pris en charge par tous les appareils pour ImageAnalysis (contrairement
+                    // à RGBA_8888, qui a fait planter l'app sur certains appareils/caméras).
                     val analysis = ImageAnalysis.Builder()
-                        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
                         .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                         .build()
 
                     analysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
-                        val now = System.currentTimeMillis()
-                        if (now - lastAnalysisTime >= CLASSIFICATION_INTERVAL_MS) {
-                            lastAnalysisTime = now
-                            val bitmap = imageProxy.toRotatedBitmap()
-                            if (bitmap != null) {
-                                result = classifier.classify(bitmap)
+                        try {
+                            val now = System.currentTimeMillis()
+                            if (now - lastAnalysisTime >= CLASSIFICATION_INTERVAL_MS) {
+                                lastAnalysisTime = now
+                                val bitmap = imageProxy.toRotatedBitmap()
+                                if (bitmap != null) {
+                                    result = classifier.classify(bitmap)
+                                }
                             }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Erreur lors de l'analyse d'une frame", e)
+                        } finally {
+                            imageProxy.close()
                         }
-                        imageProxy.close()
                     }
 
                     try {
@@ -163,24 +188,35 @@ fun CameraScreen() {
     }
 }
 
-/** Convertit une frame CameraX (format RGBA_8888) en Bitmap orienté comme l'aperçu. */
+/**
+ * Convertit une frame CameraX au format YUV_420_888 (le seul garanti sur tous les appareils)
+ * en Bitmap orienté comme l'aperçu, via un passage NV21 -> JPEG -> Bitmap : plus lent qu'une
+ * copie directe de buffer, mais nettement plus fiable d'un appareil à l'autre.
+ */
 private fun ImageProxy.toRotatedBitmap(): Bitmap? {
-    val plane = planes.getOrNull(0) ?: return null
-    val buffer = plane.buffer
-    val pixelStride = plane.pixelStride
-    val rowStride = plane.rowStride
-    val rowPadding = rowStride - pixelStride * width
+    if (format != ImageFormat.YUV_420_888 || planes.size < 3) return null
 
-    val bitmap = Bitmap.createBitmap(
-        width + rowPadding / pixelStride,
-        height,
-        Bitmap.Config.ARGB_8888,
-    )
-    bitmap.copyPixelsFromBuffer(buffer)
-    val cropped = if (rowPadding == 0) bitmap else Bitmap.createBitmap(bitmap, 0, 0, width, height)
+    val yBuffer = planes[0].buffer
+    val uBuffer = planes[1].buffer
+    val vBuffer = planes[2].buffer
+
+    val ySize = yBuffer.remaining()
+    val vSize = vBuffer.remaining()
+    val uSize = uBuffer.remaining()
+
+    val nv21 = ByteArray(ySize + vSize + uSize)
+    yBuffer.get(nv21, 0, ySize)
+    vBuffer.get(nv21, ySize, vSize)
+    uBuffer.get(nv21, ySize + vSize, uSize)
+
+    val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
+    val out = ByteArrayOutputStream()
+    yuvImage.compressToJpeg(Rect(0, 0, width, height), 90, out)
+    val bytes = out.toByteArray()
+    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size) ?: return null
 
     val rotation = imageInfo.rotationDegrees
-    if (rotation == 0) return cropped
+    if (rotation == 0) return bitmap
     val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-    return Bitmap.createBitmap(cropped, 0, 0, cropped.width, cropped.height, matrix, true)
+    return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
