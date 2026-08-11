@@ -96,7 +96,7 @@ jobs:
             sleep 20
             echo "===== APP PROCESS STATUS (absent = a probablement crashé) ====="
             adb shell "ps -A | grep clouddetect" || echo "Process clouddetect introuvable."
-            echo "===== FULL LOGCAT (buffered) ====="
-            adb logcat -d
-            echo "===== CRASH SUMMARY (AndroidRuntime / FATAL / clouddetect) ====="
-            adb logcat -d | grep -iE "FATAL EXCEPTION|AndroidRuntime|clouddetect|Caused by|Process.*com.clouddetect" || echo "No crash markers found in logcat."
+            echo "===== APP-TAGGED LOGCAT (tous les tags émis par notre process, y compris messages d'exception) ====="
+            adb logcat -d --pid=$(adb shell pidof com.clouddetect.app) || echo "Impossible de filtrer par pid (process absent ?)."
+            echo "===== CRASH SUMMARY (grep large) ====="
+            adb logcat -d | grep -iE "FATAL EXCEPTION|AndroidRuntime|CameraScreen|CloudClassifier|clouddetect|Caused by|Exception:|Error:|Process.*com.clouddetect" || echo "No crash markers found in logcat."
