@@ -60,12 +60,15 @@ dependencies {
 
     // 2.16.1 ne reconnaît pas les opérateurs (FULLY_CONNECTED v12 notamment) émis par les
     // versions récentes du convertisseur TFLite : Interpreter() plante à l'exécution avec
-    // "Didn't find op for builtin opcode 'FULLY_CONNECTED' version '12'". Il faut donc 2.17.0,
-    // mais cette version tire une dépendance transitive litert-api qui entre en conflit de
-    // classes avec tensorflow-lite-support (com.google.ai.edge.litert:litert-api duplique des
-    // classes de org.tensorflow:tensorflow-lite-api) : on l'exclut explicitement.
+    // "Didn't find op for builtin opcode 'FULLY_CONNECTED' version '12'". Il faut donc 2.17.0.
     implementation("org.tensorflow:tensorflow-lite:2.17.0")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4") {
-        exclude(group = "com.google.ai.edge.litert", module = "litert-api")
-    }
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+}
+
+configurations.all {
+    // com.google.ai.edge.litert:litert-api (successeur renommé de TFLite chez Google) duplique
+    // des classes déjà fournies par org.tensorflow:tensorflow-lite-api. L'exclusion ciblée sur
+    // une seule dépendance ne suffit pas : plusieurs chemins transitifs (tensorflow-lite comme
+    // tensorflow-lite-support) l'introduisent, d'où une exclusion globale sur toute config.
+    exclude(group = "com.google.ai.edge.litert", module = "litert-api")
 }
