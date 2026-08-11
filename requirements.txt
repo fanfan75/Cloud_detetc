@@ -4,8 +4,10 @@ Pillow>=10.0
 requests>=2.31
 
 # Pour src/train_tflite.py (export du modèle embarqué dans l'app Android).
-# Pinné exactement sur la version de org.tensorflow:tensorflow-lite côté Android
-# (voir android/app/build.gradle.kts) : une version pip plus récente peut émettre
-# un op-set que le runtime TFLite mobile ne reconnaît pas encore, ce qui fait
-# planter Interpreter() au chargement du modèle.
-tensorflow==2.16.1
+# Pinné sur la même ligne de version que org.tensorflow:tensorflow-lite côté Android
+# (voir android/app/build.gradle.kts) pour que l'op-set émis reste compatible avec
+# le runtime TFLite mobile (sinon Interpreter() plante au chargement du modèle,
+# ex: "Didn't find op for builtin opcode 'FULLY_CONNECTED' version 'N'").
+# Note : 2.16.1 plante au moment même de la conversion (bug connu du convertisseur
+# TFLite avec les modèles Keras 3 / MobileNetV2), donc 2.17.1 est le choix qui marche.
+tensorflow==2.17.1

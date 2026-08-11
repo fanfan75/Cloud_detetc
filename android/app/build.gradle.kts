@@ -58,9 +58,14 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.3.4")
     implementation("androidx.camera:camera-view:1.3.4")
 
-    // 2.17.0+ tire une dépendance transitive litert-api qui entre en conflit de classes
-    // avec tensorflow-lite-support (voir "Duplicate class org.tensorflow.lite.DataType").
-    // 2.16.1 reste la dernière version sans ce conflit.
-    implementation("org.tensorflow:tensorflow-lite:2.16.1")
-    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    // 2.16.1 ne reconnaît pas les opérateurs (FULLY_CONNECTED v12 notamment) émis par les
+    // versions récentes du convertisseur TFLite : Interpreter() plante à l'exécution avec
+    // "Didn't find op for builtin opcode 'FULLY_CONNECTED' version '12'". Il faut donc 2.17.0,
+    // mais cette version tire une dépendance transitive litert-api qui entre en conflit de
+    // classes avec tensorflow-lite-support (com.google.ai.edge.litert:litert-api duplique des
+    // classes de org.tensorflow:tensorflow-lite-api) : on l'exclut explicitement.
+    implementation("org.tensorflow:tensorflow-lite:2.17.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4") {
+        exclude(group = "com.google.ai.edge.litert", module = "litert-api")
+    }
 }
