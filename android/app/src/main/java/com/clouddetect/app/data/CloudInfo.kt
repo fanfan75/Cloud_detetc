@@ -2,9 +2,12 @@ package com.clouddetect.app.data
 
 import com.clouddetect.app.R
 
+/** Une espèce ou variété reconnue par l'OMM pour un genre de nuage donné. */
+data class Espece(val nom: String, val description: String)
+
 /**
  * Une fiche descriptive pour un type de nuage (classification CCSN / genres OMM).
- * `imageRes` pointe vers une vraie photo du dataset CCSN, embarquée dans l'app.
+ * `images` pointe vers de vraies photos du dataset CCSN, embarquées dans l'app.
  */
 data class CloudInfo(
     val code: String,
@@ -16,7 +19,8 @@ data class CloudInfo(
     val couleur: String,
     val description: String,
     val meteoAssociee: String,
-    val imageRes: Int,
+    val images: List<Int>,
+    val especes: List<Espece> = emptyList(),
 )
 
 val CLOUD_DATABASE: List<CloudInfo> = listOf(
@@ -30,7 +34,12 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Fins filaments blancs et délicats, composés de cristaux de glace, souvent étirés par le vent en altitude.",
         meteoAssociee = "Ciel généralement clair ; annonce parfois un changement de temps sous 24-48h.",
-        imageRes = R.drawable.cloud_ci,
+        images = listOf(R.drawable.cloud_ci, R.drawable.cloud_ci_2, R.drawable.cloud_ci_3),
+        especes = listOf(
+            Espece("fibratus", "Filaments presque rectilignes ou légèrement incurvés, sans crochets ni touffes."),
+            Espece("uncinus", "Filaments en forme de virgule ou de crochet, terminés par une touffe (\"queue de cheval\")."),
+            Espece("spissatus", "Cirrus denses et assez épais pour paraître grisâtres, souvent issus du sommet d'un cumulonimbus."),
+        ),
     ),
     CloudInfo(
         code = "Cs",
@@ -42,7 +51,11 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc translucide",
         description = "Voile transparent et laiteux couvrant tout ou partie du ciel, souvent responsable d'un halo autour du soleil ou de la lune.",
         meteoAssociee = "Précède souvent une perturbation pluvieuse sous 12-24h.",
-        imageRes = R.drawable.cloud_cs,
+        images = listOf(R.drawable.cloud_cs, R.drawable.cloud_cs_2, R.drawable.cloud_cs_3),
+        especes = listOf(
+            Espece("fibratus", "Voile fibreux et translucide, aux structures fines comme des cheveux."),
+            Espece("nebulosus", "Voile uniforme et lisse, sans structure apparente, parfois difficile à repérer."),
+        ),
     ),
     CloudInfo(
         code = "Cc",
@@ -54,7 +67,12 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Petits amas blancs disposés en rangs ou en vaguelettes, donnant un aspect de \"ciel moutonné\".",
         meteoAssociee = "Temps généralement calme, parfois signe d'instabilité à venir.",
-        imageRes = R.drawable.cloud_cc,
+        images = listOf(R.drawable.cloud_cc, R.drawable.cloud_cc_2, R.drawable.cloud_cc_3),
+        especes = listOf(
+            Espece("stratiformis", "Nappe étendue organisée en plaques ou en couches régulières."),
+            Espece("lenticularis", "Forme d'amande ou de lentille, souvent liée à un relief proche."),
+            Espece("castellanus", "Petites tourelles évoquant un donjon, signe d'instabilité en altitude."),
+        ),
     ),
     CloudInfo(
         code = "Ac",
@@ -66,7 +84,13 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc à gris",
         description = "Amas de nuages blancs ou gris organisés en bancs, souvent appelés \"ciel pommelé\" ou \"ciel de maquereau\".",
         meteoAssociee = "Beau temps généralement, mais peut annoncer des orages en fin de journée.",
-        imageRes = R.drawable.cloud_ac,
+        images = listOf(R.drawable.cloud_ac, R.drawable.cloud_ac_2, R.drawable.cloud_ac_3),
+        especes = listOf(
+            Espece("stratiformis", "Nappe en plaques ou rouleaux organisés, le type le plus courant."),
+            Espece("lenticularis", "Forme lenticulaire quasi immobile, typique en aval d'un relief."),
+            Espece("castellanus", "Sommets bourgeonnants en forme de tourelles alignées."),
+            Espece("floccus", "Petits amas en touffes, aux contours effilochés en dessous."),
+        ),
     ),
     CloudInfo(
         code = "As",
@@ -78,7 +102,11 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris à gris-bleu",
         description = "Couche grisâtre uniforme qui voile le soleil comme à travers un verre dépoli, sans halo net.",
         meteoAssociee = "Précède souvent des précipitations continues (pluie ou neige).",
-        imageRes = R.drawable.cloud_as,
+        images = listOf(R.drawable.cloud_as, R.drawable.cloud_as_2, R.drawable.cloud_as_3),
+        especes = listOf(
+            Espece("translucidus", "Couche assez fine pour laisser deviner la position du soleil ou de la lune."),
+            Espece("opacus", "Couche assez épaisse pour masquer complètement le soleil (variété, pas d'espèce reconnue pour ce genre)."),
+        ),
     ),
     CloudInfo(
         code = "Ns",
@@ -90,7 +118,8 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris foncé",
         description = "Épaisse couche grise et sombre masquant complètement le soleil, associée à des précipitations durables.",
         meteoAssociee = "Pluie ou neige continue et durable.",
-        imageRes = R.drawable.cloud_ns,
+        images = listOf(R.drawable.cloud_ns, R.drawable.cloud_ns_2, R.drawable.cloud_ns_3),
+        especes = emptyList(),
     ),
     CloudInfo(
         code = "Sc",
@@ -102,7 +131,12 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc à gris",
         description = "Grands amas ou rouleaux gris et blancs, souvent en bancs organisés, laissant parfois voir le ciel bleu entre eux.",
         meteoAssociee = "Temps sec le plus souvent, parfois bruine légère.",
-        imageRes = R.drawable.cloud_sc,
+        images = listOf(R.drawable.cloud_sc, R.drawable.cloud_sc_2, R.drawable.cloud_sc_3),
+        especes = listOf(
+            Espece("stratiformis", "Nappe étendue en plaques ou en rouleaux, le type le plus fréquent."),
+            Espece("lenticularis", "Forme lenticulaire, souvent d'origine orographique (liée au relief)."),
+            Espece("castellanus", "Sommets bourgeonnants signalant une instabilité modérée."),
+        ),
     ),
     CloudInfo(
         code = "St",
@@ -114,7 +148,11 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris uniforme",
         description = "Couche grise uniforme et basse, semblable à du brouillard qui ne touche pas le sol, cachant souvent le sommet des collines.",
         meteoAssociee = "Bruine, brouillard, ciel maussade.",
-        imageRes = R.drawable.cloud_st,
+        images = listOf(R.drawable.cloud_st, R.drawable.cloud_st_2, R.drawable.cloud_st_3),
+        especes = listOf(
+            Espece("nebulosus", "Couche uniforme et grise, sans structure distincte, le plus courant."),
+            Espece("fractus", "Lambeaux déchiquetés et changeants, souvent sous un nuage précipitant."),
+        ),
     ),
     CloudInfo(
         code = "Cu",
@@ -126,7 +164,13 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc avec base grisâtre",
         description = "Nuages isolés à contours nets et base plate, en forme de choux-fleurs, typiques du beau temps.",
         meteoAssociee = "Nuages de beau temps ; s'ils grossissent (cumulus congestus), risque d'averses ou d'orages.",
-        imageRes = R.drawable.cloud_cu,
+        images = listOf(R.drawable.cloud_cu, R.drawable.cloud_cu_2, R.drawable.cloud_cu_3),
+        especes = listOf(
+            Espece("humilis", "Cumulus aplatis, peu développés verticalement : signe de beau temps."),
+            Espece("mediocris", "Développement vertical modéré, contours nettement bourgeonnants."),
+            Espece("congestus", "Cumulus imposants en choux-fleurs, précurseurs d'averses ou d'orages."),
+            Espece("fractus", "Lambeaux effilochés et instables, souvent sous un nuage plus grand."),
+        ),
     ),
     CloudInfo(
         code = "Cb",
@@ -138,7 +182,11 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris foncé à noir",
         description = "Nuage massif en forme de tour ou d'enclume, associé aux orages violents.",
         meteoAssociee = "Nuage d'orage : fortes pluies, grêle, foudre, rafales possibles.",
-        imageRes = R.drawable.cloud_cb,
+        images = listOf(R.drawable.cloud_cb, R.drawable.cloud_cb_2, R.drawable.cloud_cb_3),
+        especes = listOf(
+            Espece("calvus", "Sommet encore bourgeonnant, pas encore lissé en enclume : orage en formation."),
+            Espece("capillatus", "Sommet fibreux étalé en enclume caractéristique : stade mature de l'orage."),
+        ),
     ),
     CloudInfo(
         code = "Ct",
@@ -150,6 +198,10 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Traînée de condensation laissée par le passage d'un avion en haute altitude, qui peut se dissiper ou persister selon l'humidité ambiante.",
         meteoAssociee = "Indicateur d'humidité en haute altitude, pas de lien météo direct.",
-        imageRes = R.drawable.cloud_ct,
+        images = listOf(R.drawable.cloud_ct, R.drawable.cloud_ct_2, R.drawable.cloud_ct_3),
+        especes = listOf(
+            Espece("courte / dissipée", "Se dissipe en quelques minutes quand l'air en altitude est sec."),
+            Espece("persistante", "S'étale et perdure quand l'air est humide, jusqu'à ressembler à un cirrus."),
+        ),
     ),
 )

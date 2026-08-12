@@ -174,7 +174,7 @@ fun CameraScreen() {
                     Column(Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Image(
-                                painter = painterResource(id = info.imageRes),
+                                painter = painterResource(id = info.images.first()),
                                 contentDescription = "Photo de référence : ${info.nameFr}",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
