@@ -1,7 +1,10 @@
 package com.clouddetect.app.data
 
+import com.clouddetect.app.R
+
 /**
  * Une fiche descriptive pour un type de nuage (classification CCSN / genres OMM).
+ * `imageRes` pointe vers une vraie photo du dataset CCSN, embarquée dans l'app.
  */
 data class CloudInfo(
     val code: String,
@@ -13,6 +16,7 @@ data class CloudInfo(
     val couleur: String,
     val description: String,
     val meteoAssociee: String,
+    val imageRes: Int,
 )
 
 val CLOUD_DATABASE: List<CloudInfo> = listOf(
@@ -26,6 +30,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Fins filaments blancs et délicats, composés de cristaux de glace, souvent étirés par le vent en altitude.",
         meteoAssociee = "Ciel généralement clair ; annonce parfois un changement de temps sous 24-48h.",
+        imageRes = R.drawable.cloud_ci,
     ),
     CloudInfo(
         code = "Cs",
@@ -37,6 +42,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc translucide",
         description = "Voile transparent et laiteux couvrant tout ou partie du ciel, souvent responsable d'un halo autour du soleil ou de la lune.",
         meteoAssociee = "Précède souvent une perturbation pluvieuse sous 12-24h.",
+        imageRes = R.drawable.cloud_cs,
     ),
     CloudInfo(
         code = "Cc",
@@ -48,6 +54,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Petits amas blancs disposés en rangs ou en vaguelettes, donnant un aspect de \"ciel moutonné\".",
         meteoAssociee = "Temps généralement calme, parfois signe d'instabilité à venir.",
+        imageRes = R.drawable.cloud_cc,
     ),
     CloudInfo(
         code = "Ac",
@@ -59,6 +66,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc à gris",
         description = "Amas de nuages blancs ou gris organisés en bancs, souvent appelés \"ciel pommelé\" ou \"ciel de maquereau\".",
         meteoAssociee = "Beau temps généralement, mais peut annoncer des orages en fin de journée.",
+        imageRes = R.drawable.cloud_ac,
     ),
     CloudInfo(
         code = "As",
@@ -70,6 +78,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris à gris-bleu",
         description = "Couche grisâtre uniforme qui voile le soleil comme à travers un verre dépoli, sans halo net.",
         meteoAssociee = "Précède souvent des précipitations continues (pluie ou neige).",
+        imageRes = R.drawable.cloud_as,
     ),
     CloudInfo(
         code = "Ns",
@@ -81,6 +90,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris foncé",
         description = "Épaisse couche grise et sombre masquant complètement le soleil, associée à des précipitations durables.",
         meteoAssociee = "Pluie ou neige continue et durable.",
+        imageRes = R.drawable.cloud_ns,
     ),
     CloudInfo(
         code = "Sc",
@@ -92,6 +102,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc à gris",
         description = "Grands amas ou rouleaux gris et blancs, souvent en bancs organisés, laissant parfois voir le ciel bleu entre eux.",
         meteoAssociee = "Temps sec le plus souvent, parfois bruine légère.",
+        imageRes = R.drawable.cloud_sc,
     ),
     CloudInfo(
         code = "St",
@@ -103,6 +114,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris uniforme",
         description = "Couche grise uniforme et basse, semblable à du brouillard qui ne touche pas le sol, cachant souvent le sommet des collines.",
         meteoAssociee = "Bruine, brouillard, ciel maussade.",
+        imageRes = R.drawable.cloud_st,
     ),
     CloudInfo(
         code = "Cu",
@@ -114,6 +126,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc avec base grisâtre",
         description = "Nuages isolés à contours nets et base plate, en forme de choux-fleurs, typiques du beau temps.",
         meteoAssociee = "Nuages de beau temps ; s'ils grossissent (cumulus congestus), risque d'averses ou d'orages.",
+        imageRes = R.drawable.cloud_cu,
     ),
     CloudInfo(
         code = "Cb",
@@ -125,6 +138,7 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Gris foncé à noir",
         description = "Nuage massif en forme de tour ou d'enclume, associé aux orages violents.",
         meteoAssociee = "Nuage d'orage : fortes pluies, grêle, foudre, rafales possibles.",
+        imageRes = R.drawable.cloud_cb,
     ),
     CloudInfo(
         code = "Ct",
@@ -136,5 +150,6 @@ val CLOUD_DATABASE: List<CloudInfo> = listOf(
         couleur = "Blanc",
         description = "Traînée de condensation laissée par le passage d'un avion en haute altitude, qui peut se dissiper ou persister selon l'humidité ambiante.",
         meteoAssociee = "Indicateur d'humidité en haute altitude, pas de lien météo direct.",
+        imageRes = R.drawable.cloud_ct,
     ),
 )

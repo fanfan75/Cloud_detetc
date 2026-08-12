@@ -1,15 +1,21 @@
 package com.clouddetect.app.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.clouddetect.app.data.CLOUD_DATABASE
 import com.clouddetect.app.data.CloudInfo
@@ -29,6 +35,15 @@ fun CloudCard(cloud: CloudInfo) {
     Card(modifier = Modifier
         .fillMaxWidth()
         .padding(vertical = 6.dp)) {
+        Image(
+            painter = painterResource(id = cloud.imageRes),
+            contentDescription = "Photo d'un ciel avec des nuages de type ${cloud.nameFr}",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+        )
         Column(Modifier.padding(16.dp)) {
             Text("${cloud.nameFr} (${cloud.code})", style = MaterialTheme.typography.titleMedium)
             Text(cloud.famille, style = MaterialTheme.typography.labelMedium)
