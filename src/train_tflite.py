@@ -1,5 +1,5 @@
-"""Entraîne un classifieur de nuages MobileNetV2 (transfer learning) et l'exporte en TFLite
-pour une utilisation embarquée dans l'application Android.
+"""Entraîne un classifieur de nuages (transfer learning MobileNetV3Large) et l'exporte en
+TFLite pour une utilisation embarquée dans l'application Android.
 """
 import argparse
 import json
@@ -30,10 +30,15 @@ def build_datasets(data_dir: str, val_split: float, batch_size: int, seed: int =
     )
     class_names = train_ds.class_names
 
+    # Augmentation renforcée par rapport à la version précédente (zoom + translation en plus
+    # du flip/rotation/contraste) pour limiter le surapprentissage sur un dataset de quelques
+    # centaines d'images par classe.
     augment = models.Sequential([
         layers.RandomFlip("horizontal"),
-        layers.RandomRotation(0.05),
-        layers.RandomContrast(0.1),
+        layers.RandomRotation(0.06),
+        layers.RandomZoom(0.1),
+        layers.RandomTranslation(0.08, 0.08),
+        layers.RandomContrast(0.15),
     ])
 
     train_ds = train_ds.map(lambda x, y: (augment(x, training=True), y))
@@ -43,17 +48,33 @@ def build_datasets(data_dir: str, val_split: float, batch_size: int, seed: int =
     return train_ds, val_ds, class_names
 
 
+def compute_class_weight(data_dir: str, class_names: list[str]) -> dict[int, float]:
+    """Poids inversement proportionnels à la taille de chaque classe (ex: Ci a 139 images
+    contre 340 pour Sc dans CCSN) pour que l'entraînement ne néglige pas les classes rares.
+    """
+    counts = [len(list((Path(data_dir) / name).glob("*"))) for name in class_names]
+    total = sum(counts)
+    num_classes = len(class_names)
+    return {i: total / (num_classes * count) for i, count in enumerate(counts)}
+
+
 def build_model(num_classes: int) -> tf.keras.Model:
-    base = tf.keras.applications.MobileNetV2(
-        input_shape=(IMG_SIZE, IMG_SIZE, 3), include_top=False, weights="imagenet"
+    # MobileNetV3Large : meilleure exactitude qu'un MobileNetV2 à taille comparable sur
+    # ImageNet, tout en restant une architecture mobile bien prise en charge par le
+    # convertisseur TFLite (mêmes familles d'opérateurs, activation hard-swish supportée
+    # nativement).
+    base = tf.keras.applications.MobileNetV3Large(
+        input_shape=(IMG_SIZE, IMG_SIZE, 3),
+        include_top=False,
+        weights="imagenet",
+        include_preprocessing=True,
     )
     base.trainable = False
 
     inputs = tf.keras.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
-    x = tf.keras.applications.mobilenet_v2.preprocess_input(inputs)
-    x = base(x, training=False)
+    x = base(inputs, training=False)
     x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.2)(x)
+    x = layers.Dropout(0.3)(x)
     outputs = layers.Dense(num_classes, activation="softmax")(x)
     model = tf.keras.Model(inputs, outputs)
     return model, base
@@ -61,6 +82,7 @@ def build_model(num_classes: int) -> tf.keras.Model:
 
 def train(args):
     train_ds, val_ds, class_names = build_datasets(args.data_dir, args.val_split, args.batch_size)
+    class_weight = compute_class_weight(args.data_dir, class_names)
     model, base = build_model(len(class_names))
 
     model.compile(
@@ -68,7 +90,7 @@ def train(args):
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
-    model.fit(train_ds, validation_data=val_ds, epochs=args.epochs)
+    model.fit(train_ds, validation_data=val_ds, epochs=args.epochs, class_weight=class_weight)
 
     # Fine-tuning : on dégèle les dernières couches du réseau de base pour affiner.
     base.trainable = True
@@ -79,7 +101,17 @@ def train(args):
         loss="sparse_categorical_crossentropy",
         metrics=["accuracy"],
     )
-    history = model.fit(train_ds, validation_data=val_ds, epochs=args.fine_tune_epochs)
+    history = model.fit(
+        train_ds,
+        validation_data=val_ds,
+        epochs=args.fine_tune_epochs,
+        class_weight=class_weight,
+        callbacks=[
+            tf.keras.callbacks.ReduceLROnPlateau(
+                monitor="val_accuracy", factor=0.5, patience=3, min_lr=1e-7
+            ),
+        ],
+    )
 
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -92,12 +124,14 @@ def train(args):
     (output_dir / "classes.json").write_text(json.dumps(class_names, ensure_ascii=False, indent=2))
 
     final_val_acc = history.history["val_accuracy"][-1]
+    best_val_acc = max(history.history["val_accuracy"])
     print(f"Précision finale de validation : {final_val_acc:.4f}")
+    print(f"Meilleure précision de validation (fine-tuning) : {best_val_acc:.4f}")
     print(f"Modèle TFLite exporté dans {output_dir}/cloud_classifier.tflite")
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Entraîne un classifieur de nuages MobileNetV2 -> TFLite")
+    parser = argparse.ArgumentParser(description="Entraîne un classifieur de nuages MobileNetV3Large -> TFLite")
     parser.add_argument("--data-dir", required=True)
     parser.add_argument("--output", default="tflite_model")
     parser.add_argument("--epochs", type=int, default=10)
