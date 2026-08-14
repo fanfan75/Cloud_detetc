@@ -73,6 +73,8 @@ import com.clouddetect.app.ml.CloudClassifier
 import com.clouddetect.app.weather.CurrentWeather
 import com.clouddetect.app.weather.awaitLocation
 import com.clouddetect.app.weather.fetchCurrentWeather
+import com.clouddetect.app.weather.formatCoordinates
+import com.clouddetect.app.weather.reverseGeocode
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -139,6 +141,7 @@ fun CameraScreen() {
     var weather by remember { mutableStateOf<CurrentWeather?>(null) }
     var weatherStatus by remember { mutableStateOf("Météo locale non chargée") }
     var weatherRefreshKey by remember { mutableStateOf(0) }
+    var locationLabel by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(hasLocationPermission, weatherRefreshKey) {
         if (!hasLocationPermission) {
@@ -159,6 +162,7 @@ fun CameraScreen() {
             weather = fetched
             weatherStatus = ""
         }
+        locationLabel = reverseGeocode(context, position.first, position.second)
     }
 
     if (classifier == null) {
@@ -239,6 +243,7 @@ fun CameraScreen() {
             if (isPaused && frameToCapture != null && infoToCapture != null) {
                 val resultsToCapture = results
                 val weatherToCapture = weather
+                val locationLabelToCapture = locationLabel
                 Button(onClick = {
                     val saved = captureFiche(
                         context = context,
@@ -246,6 +251,7 @@ fun CameraScreen() {
                         info = infoToCapture,
                         results = resultsToCapture,
                         weather = weatherToCapture,
+                        locationLabel = locationLabelToCapture,
                         analyse = analyse,
                     )
                     Toast.makeText(
@@ -332,6 +338,7 @@ fun CameraScreen() {
                             WeatherSection(
                                 weather = weather,
                                 weatherStatus = weatherStatus,
+                                locationLabel = locationLabel,
                                 onRefresh = { weatherRefreshKey++ },
                             )
                             AnalysisSection(analyse)
@@ -404,6 +411,7 @@ private fun DetailSection(info: CloudInfo) {
 private fun WeatherSection(
     weather: CurrentWeather?,
     weatherStatus: String,
+    locationLabel: String?,
     onRefresh: () -> Unit,
 ) {
     HorizontalDivider(Modifier.padding(vertical = 12.dp))
@@ -425,6 +433,10 @@ private fun WeatherSection(
     } else {
         Text(weather.description, style = MaterialTheme.typography.bodyMedium)
         Text(weatherLine(weather), style = MaterialTheme.typography.bodySmall)
+        Text(
+            "Position : " + locationText(weather.latitude, weather.longitude, locationLabel),
+            style = MaterialTheme.typography.bodySmall,
+        )
     }
 }
 
@@ -455,6 +467,12 @@ private fun weatherLine(weather: CurrentWeather): String = buildString {
     if (!weather.windSpeedKmh.isNaN()) append(" · vent ${weather.windSpeedKmh.roundToInt()} km/h")
 }
 
+/** Coordonnées GPS lisibles, avec le nom de lieu entre parenthèses si le géocodage a réussi. */
+private fun locationText(latitude: Double, longitude: Double, locationLabel: String?): String {
+    val coords = formatCoordinates(latitude, longitude)
+    return if (locationLabel.isNullOrBlank()) coords else "$coords ($locationLabel)"
+}
+
 /** Compose la fiche (photo + texte) et l'enregistre dans la galerie. */
 private fun captureFiche(
     context: android.content.Context,
@@ -462,6 +480,7 @@ private fun captureFiche(
     info: CloudInfo,
     results: List<ClassificationResult>,
     weather: CurrentWeather?,
+    locationLabel: String?,
     analyse: List<String>,
 ): Boolean {
     val top = results.firstOrNull() ?: return false
@@ -485,6 +504,7 @@ private fun captureFiche(
         add("Météo associée : ${info.meteoAssociee}")
         if (weather != null) {
             add("Météo locale : ${weather.description} — ${weatherLine(weather)}")
+            add("Position GPS : ${locationText(weather.latitude, weather.longitude, locationLabel)}")
         }
         analyse.forEach { add("• $it") }
         add("Observé le $horodatage avec Cloud Detect")

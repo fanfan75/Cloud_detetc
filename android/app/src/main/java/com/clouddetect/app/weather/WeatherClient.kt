@@ -2,6 +2,7 @@ package com.clouddetect.app.weather
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -15,7 +16,9 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
 import kotlin.coroutines.resume
+import kotlin.math.absoluteValue
 
 private const val TAG = "WeatherClient"
 private const val API_URL = "https://api.open-meteo.com/v1/forecast"
@@ -109,6 +112,39 @@ suspend fun awaitLocation(context: Context): Pair<Double, Double>? {
             continuation.invokeOnCancellation { manager.removeUpdates(listener) }
         }
     }
+}
+
+/**
+ * Nom de lieu approximatif (ville, pays) pour des coordonnées, via le géocodeur système.
+ * Retourne null si aucun service de géocodage n'est disponible sur l'appareil (courant sur
+ * les AOSP sans services Google) ou en l'absence de réseau — les coordonnées brutes suffisent
+ * alors à identifier le lieu.
+ */
+suspend fun reverseGeocode(context: Context, latitude: Double, longitude: Double): String? =
+    withContext(Dispatchers.IO) {
+        if (!Geocoder.isPresent()) return@withContext null
+        try {
+            val geocoder = Geocoder(context, Locale.FRANCE)
+            @Suppress("DEPRECATION")
+            val addresses = geocoder.getFromLocation(latitude, longitude, 1)
+            val address = addresses?.firstOrNull() ?: return@withContext null
+            listOfNotNull(
+                address.locality ?: address.subAdminArea ?: address.adminArea,
+                address.countryName,
+            ).joinToString(", ").ifBlank { null }
+        } catch (e: Exception) {
+            Log.e(TAG, "Géocodage inverse impossible", e)
+            null
+        }
+    }
+
+/** Formate des coordonnées en notation lisible (ex. "48.8566°N, 2.3522°E"). */
+fun formatCoordinates(latitude: Double, longitude: Double): String {
+    val ns = if (latitude >= 0) "N" else "S"
+    val ew = if (longitude >= 0) "E" else "O"
+    val lat = "%.4f".format(Locale.US, latitude.absoluteValue)
+    val lon = "%.4f".format(Locale.US, longitude.absoluteValue)
+    return "$lat°$ns, $lon°$ew"
 }
 
 @SuppressLint("MissingPermission")
