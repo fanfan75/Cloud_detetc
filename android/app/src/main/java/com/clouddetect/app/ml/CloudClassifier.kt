@@ -28,7 +28,8 @@ class CloudClassifier(context: Context) {
         labels = FileUtil.loadLabels(context, LABELS_FILE)
     }
 
-    fun classify(bitmap: Bitmap): ClassificationResult {
+    /** Retourne les `topK` classes les plus probables, de la plus probable à la moins probable. */
+    fun classify(bitmap: Bitmap, topK: Int = 3): List<ClassificationResult> {
         var tensorImage = TensorImage(DataType.FLOAT32)
         tensorImage.load(bitmap)
         tensorImage = imageProcessor.process(tensorImage)
@@ -37,11 +38,10 @@ class CloudClassifier(context: Context) {
         interpreter.run(tensorImage.buffer, output)
 
         val probs = output[0]
-        var bestIdx = 0
-        for (i in probs.indices) {
-            if (probs[i] > probs[bestIdx]) bestIdx = i
-        }
-        return ClassificationResult(labels[bestIdx], probs[bestIdx])
+        return probs.indices
+            .sortedByDescending { probs[it] }
+            .take(topK)
+            .map { ClassificationResult(labels[it], probs[it]) }
     }
 
     fun close() {

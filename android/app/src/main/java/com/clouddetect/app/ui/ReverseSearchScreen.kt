@@ -21,8 +21,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.clouddetect.app.data.CLOUD_DATABASE
 
-private val FAMILLES = listOf("Nuages hauts", "Nuages moyens", "Nuages bas", "Développement vertical")
-private val COULEURS = listOf("Blanc", "Gris", "Noir")
+// Ces libellés sont comparés avec `contains` sur le champ `famille` : ils doivent donc rester
+// des préfixes valides des familles réelles (ex. « Particularité » couvre
+// « Particularité supplémentaire »).
+private val FAMILLES = listOf(
+    "Nuages hauts",
+    "Nuages moyens",
+    "Nuages bas",
+    "Développement vertical",
+    "Particularité",
+    "Nuage spécial",
+)
+private val COULEURS = listOf("Blanc", "Gris", "Noir", "Irisations")
 
 @Composable
 fun ReverseSearchScreen() {
@@ -33,8 +43,12 @@ fun ReverseSearchScreen() {
     val results = CLOUD_DATABASE.filter { cloud ->
         val matchesQuery = query.isBlank() ||
             cloud.nameFr.contains(query, ignoreCase = true) ||
+            cloud.nameLatin.contains(query, ignoreCase = true) ||
             cloud.forme.contains(query, ignoreCase = true) ||
-            cloud.description.contains(query, ignoreCase = true)
+            cloud.composition.contains(query, ignoreCase = true) ||
+            cloud.precipitations.contains(query, ignoreCase = true) ||
+            cloud.description.contains(query, ignoreCase = true) ||
+            cloud.especes.any { it.nom.contains(query, ignoreCase = true) }
 
         val matchesFamille = selectedFamilles.isEmpty() ||
             selectedFamilles.any { cloud.famille.contains(it, ignoreCase = true) }
