@@ -110,6 +110,14 @@ def train(args):
             tf.keras.callbacks.ReduceLROnPlateau(
                 monitor="val_accuracy", factor=0.5, patience=3, min_lr=1e-7
             ),
+            # Sans ça, model.fit() laisse les poids de la DERNIÈRE epoch dans le modèle, pas
+            # ceux de la meilleure : sur ce dataset le fine-tuning surapprend vite (le pic de
+            # val_accuracy arrive souvent bien avant la fin), donc exporter tel quel dégradait
+            # le modèle par rapport à son propre pic. restore_best_weights répare ça, et
+            # l'arrêt anticipé évite de gaspiller des epochs une fois le surapprentissage engagé.
+            tf.keras.callbacks.EarlyStopping(
+                monitor="val_accuracy", patience=6, restore_best_weights=True
+            ),
         ],
     )
 
@@ -123,10 +131,12 @@ def train(args):
     (output_dir / "labels.txt").write_text("\n".join(class_names))
     (output_dir / "classes.json").write_text(json.dumps(class_names, ensure_ascii=False, indent=2))
 
-    final_val_acc = history.history["val_accuracy"][-1]
+    # Avec EarlyStopping(restore_best_weights=True), le modèle exporté ci-dessus porte déjà
+    # les poids de la meilleure epoch, pas de la dernière : c'est bien best_val_acc qui décrit
+    # le modèle exporté.
     best_val_acc = max(history.history["val_accuracy"])
-    print(f"Précision finale de validation : {final_val_acc:.4f}")
-    print(f"Meilleure précision de validation (fine-tuning) : {best_val_acc:.4f}")
+    best_epoch = history.history["val_accuracy"].index(best_val_acc) + 1
+    print(f"Meilleure précision de validation : {best_val_acc:.4f} (epoch {best_epoch}/{len(history.history['val_accuracy'])})")
     print(f"Modèle TFLite exporté dans {output_dir}/cloud_classifier.tflite")
 
 
