@@ -20,13 +20,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -92,6 +97,7 @@ fun CameraScreen() {
     }
     var result by remember { mutableStateOf<ClassificationResult?>(null) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
+    var isPaused by remember { mutableStateOf(false) }
 
     if (classifier == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -122,12 +128,14 @@ fun CameraScreen() {
 
                     analysis.setAnalyzer(Executors.newSingleThreadExecutor()) { imageProxy ->
                         try {
-                            val now = System.currentTimeMillis()
-                            if (now - lastAnalysisTime >= CLASSIFICATION_INTERVAL_MS) {
-                                lastAnalysisTime = now
-                                val bitmap = imageProxy.toRotatedBitmap()
-                                if (bitmap != null) {
-                                    result = classifier.classify(bitmap)
+                            if (!isPaused) {
+                                val now = System.currentTimeMillis()
+                                if (now - lastAnalysisTime >= CLASSIFICATION_INTERVAL_MS) {
+                                    lastAnalysisTime = now
+                                    val bitmap = imageProxy.toRotatedBitmap()
+                                    if (bitmap != null) {
+                                        result = classifier.classify(bitmap)
+                                    }
                                 }
                             }
                         } catch (e: Exception) {
@@ -152,6 +160,20 @@ fun CameraScreen() {
                 previewView
             },
         )
+
+        Button(
+            onClick = { isPaused = !isPaused },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
+        ) {
+            Icon(
+                if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                contentDescription = null,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (isPaused) "Reprendre" else "Stopper")
+        }
 
         val current = result
         val info = current?.let { r -> CLOUD_DATABASE.find { it.code == r.code } }
