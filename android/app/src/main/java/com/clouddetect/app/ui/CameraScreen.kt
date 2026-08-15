@@ -22,6 +22,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -159,6 +160,8 @@ fun CameraScreen() {
     var lastAnalysisTime by remember { mutableStateOf(0L) }
     var isPaused by remember { mutableStateOf(false) }
     var isAutoLocked by remember { mutableStateOf(false) }
+    var isDetailExpanded by remember { mutableStateOf(false) }
+    var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
 
     var weather by remember { mutableStateOf<CurrentWeather?>(null) }
     var weatherStatus by remember { mutableStateOf("Météo locale non chargée") }
@@ -199,6 +202,7 @@ fun CameraScreen() {
             modifier = Modifier.fillMaxSize(),
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
+                previewViewRef = previewView
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
                     val cameraProvider = cameraProviderFuture.get()
@@ -236,6 +240,7 @@ fun CameraScreen() {
                                         if (topConfidence >= AUTO_LOCK_CONFIDENCE) {
                                             isAutoLocked = true
                                             isPaused = true
+                                            isDetailExpanded = false
                                         }
                                     }
                                 }
@@ -282,9 +287,15 @@ fun CameraScreen() {
                 val weatherToCapture = weather
                 val locationLabelToCapture = locationLabel
                 Button(onClick = {
+                    // On capture une frame fraîche de l'aperçu au moment précis de l'appui,
+                    // plutôt que la frame figée au moment du dernier passage du classifieur
+                    // (lastFrame) : entre l'auto-lock et l'appui sur « Capturer », l'appareil
+                    // a pu bouger (ex. redescendre vers le sol), et lastFrame ne reflète plus
+                    // ce que l'utilisateur vise réellement.
+                    val liveFrame = previewViewRef?.bitmap ?: frameToCapture
                     val saved = captureFiche(
                         context = context,
-                        frame = frameToCapture,
+                        frame = liveFrame,
                         info = infoToCapture,
                         results = resultsToCapture,
                         weather = weatherToCapture,
@@ -306,7 +317,11 @@ fun CameraScreen() {
 
             Button(onClick = {
                 isPaused = !isPaused
-                if (!isPaused) isAutoLocked = false
+                if (!isPaused) {
+                    isAutoLocked = false
+                } else {
+                    isDetailExpanded = false
+                }
             }) {
                 Icon(
                     if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
@@ -331,10 +346,20 @@ fun CameraScreen() {
                     }
                 }
             } else {
-                Card {
+                // En pause, la fiche démarre repliée (juste le résultat principal) pour ne pas
+                // masquer l'aperçu du ciel : un appui dessus la déplie pour lire le détail, la
+                // météo et l'analyse.
+                val expanded = isPaused && isDetailExpanded
+                Card(
+                    modifier = if (isPaused) {
+                        Modifier.clickable { isDetailExpanded = !isDetailExpanded }
+                    } else {
+                        Modifier
+                    },
+                ) {
                     Column(
                         Modifier
-                            .heightIn(max = if (isPaused) 420.dp else 220.dp)
+                            .heightIn(max = if (expanded) 420.dp else 220.dp)
                             .verticalScroll(rememberScrollState())
                             .padding(16.dp)
                     ) {
@@ -379,6 +404,12 @@ fun CameraScreen() {
                             Text(
                                 "Appuie sur « Stopper » pour figer le résultat, lire le détail " +
                                     "et enregistrer une capture.",
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        } else if (!expanded) {
+                            Text(
+                                "Touche la fiche pour voir le détail, la météo et l'analyse.",
                                 style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 8.dp),
                             )
