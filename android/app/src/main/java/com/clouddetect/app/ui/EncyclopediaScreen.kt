@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -51,39 +52,44 @@ fun CloudCard(cloud: CloudInfo) {
                 }
             }
         }
-        Column(Modifier.padding(16.dp)) {
-            Text("${cloud.nameFr} (${cloud.code})", style = MaterialTheme.typography.titleMedium)
-            Text(cloud.famille, style = MaterialTheme.typography.labelMedium)
-            if (!cloud.detectable) {
-                Text(
-                    "Non reconnu par l'appareil photo : à repérer à l'œil.",
-                    style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            Text(cloud.description, modifier = Modifier.padding(top = 8.dp))
-            Text("Altitude : ${cloud.altitude}", modifier = Modifier.padding(top = 8.dp))
-            Text("Forme : ${cloud.forme}")
-            Text("Couleur : ${cloud.couleur}")
-            Text("Composition : ${cloud.composition}")
-            Text("Précipitations : ${cloud.precipitations}")
-            Text(
-                "Météo associée : ${cloud.meteoAssociee}",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 8.dp),
-            )
-            if (cloud.especes.isNotEmpty()) {
-                Text(
-                    "Espèces et variétés",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-                cloud.especes.forEach { espece ->
+        // SelectionContainer rend tout le texte de la fiche sélectionnable/copiable (nom,
+        // description, caractéristiques…), ce qui n'est pas le comportement par défaut des
+        // Text de Compose.
+        SelectionContainer {
+            Column(Modifier.padding(16.dp)) {
+                Text("${cloud.nameFr} (${cloud.code})", style = MaterialTheme.typography.titleMedium)
+                Text(cloud.famille, style = MaterialTheme.typography.labelMedium)
+                if (!cloud.detectable) {
                     Text(
-                        "${espece.nom} — ${espece.description}",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(top = 4.dp),
+                        "Non reconnu par l'appareil photo : à repérer à l'œil.",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(top = 2.dp),
                     )
+                }
+                Text(cloud.description, modifier = Modifier.padding(top = 8.dp))
+                Text("Altitude : ${cloud.altitude}", modifier = Modifier.padding(top = 8.dp))
+                Text("Forme : ${cloud.forme}")
+                Text("Couleur : ${cloud.couleur}")
+                Text("Composition : ${cloud.composition}")
+                Text("Précipitations : ${cloud.precipitations}")
+                Text(
+                    "Météo associée : ${cloud.meteoAssociee}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+                if (cloud.especes.isNotEmpty()) {
+                    Text(
+                        "Espèces et variétés",
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    cloud.especes.forEach { espece ->
+                        Text(
+                            "${espece.nom} — ${espece.description}",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
             }
         }
