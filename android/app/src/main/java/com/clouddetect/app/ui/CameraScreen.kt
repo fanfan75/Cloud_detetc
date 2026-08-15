@@ -19,7 +19,9 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,6 +60,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -84,6 +90,14 @@ import kotlin.math.roundToInt
 
 private const val CLASSIFICATION_INTERVAL_MS = 800L
 private const val TAG = "CameraScreen"
+
+/**
+ * Fraction de la plus petite dimension de l'image occupée par le repère de cadrage, et donc
+ * par la zone effectivement envoyée au classifieur. Une valeur < 1 exclut les bords de l'image
+ * (souvent du sol, des bâtiments ou des arbres) qui n'apportent aucun signal utile sur le
+ * nuage et peuvent perturber la classification.
+ */
+private const val FRAMING_FRACTION = 0.8f
 
 @Composable
 fun CameraScreen() {
@@ -200,7 +214,11 @@ fun CameraScreen() {
                                     lastAnalysisTime = now
                                     val bitmap = imageProxy.toRotatedBitmap()
                                     if (bitmap != null) {
-                                        results = classifier.classify(bitmap)
+                                        // On classifie la zone centrale cadrée par le repère
+                                        // affiché à l'écran, pas l'image entière : ça exclut le
+                                        // sol/les bâtiments qui polluent le signal si l'appareil
+                                        // n'est pas parfaitement à la verticale.
+                                        results = classifier.classify(bitmap.centerCrop(FRAMING_FRACTION))
                                         lastFrame = bitmap
                                     }
                                 }
@@ -227,6 +245,8 @@ fun CameraScreen() {
                 previewView
             },
         )
+
+        FramingOverlay(Modifier.fillMaxSize())
 
         val top = results.firstOrNull()
         val info = top?.let { r -> CLOUD_DATABASE.find { it.code == r.code } }
@@ -347,6 +367,34 @@ fun CameraScreen() {
                 }
             }
         }
+    }
+}
+
+/** Repère visuel montrant la zone effectivement analysée par le classifieur. */
+@Composable
+private fun FramingOverlay(modifier: Modifier = Modifier) {
+    Box(modifier) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val boxSize = size.minDimension * FRAMING_FRACTION
+            val left = (size.width - boxSize) / 2f
+            val top = (size.height - boxSize) / 2f
+            drawRect(
+                color = Color.White.copy(alpha = 0.9f),
+                topLeft = Offset(left, top),
+                size = Size(boxSize, boxSize),
+                style = Stroke(width = 3.dp.toPx()),
+            )
+        }
+        Text(
+            "Cadre le nuage dans le repère",
+            color = Color.White,
+            style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 24.dp)
+                .background(Color.Black.copy(alpha = 0.45f), RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
 }
 
@@ -550,4 +598,12 @@ private fun ImageProxy.toRotatedBitmap(): Bitmap? {
     if (rotation == 0) return bitmap
     val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+}
+
+/** Recadre sur un carré central couvrant `fraction` de la plus petite dimension. */
+private fun Bitmap.centerCrop(fraction: Float): Bitmap {
+    val cropSize = (minOf(width, height) * fraction).toInt().coerceAtLeast(1)
+    val x = ((width - cropSize) / 2).coerceAtLeast(0)
+    val y = ((height - cropSize) / 2).coerceAtLeast(0)
+    return Bitmap.createBitmap(this, x, y, cropSize, cropSize)
 }
