@@ -99,6 +99,13 @@ private const val TAG = "CameraScreen"
  */
 private const val FRAMING_FRACTION = 0.8f
 
+/**
+ * Dès qu'une classification atteint cette confiance, l'analyse s'arrête automatiquement
+ * (comme un appui sur « Stopper ») pour que le résultat reste affiché sans changer toutes
+ * les 800ms tant que l'utilisateur ne bouge pas l'appareil.
+ */
+private const val AUTO_LOCK_CONFIDENCE = 0.70f
+
 @Composable
 fun CameraScreen() {
     val context = LocalContext.current
@@ -151,6 +158,7 @@ fun CameraScreen() {
     var lastFrame by remember { mutableStateOf<Bitmap?>(null) }
     var lastAnalysisTime by remember { mutableStateOf(0L) }
     var isPaused by remember { mutableStateOf(false) }
+    var isAutoLocked by remember { mutableStateOf(false) }
 
     var weather by remember { mutableStateOf<CurrentWeather?>(null) }
     var weatherStatus by remember { mutableStateOf("Météo locale non chargée") }
@@ -218,8 +226,17 @@ fun CameraScreen() {
                                         // affiché à l'écran, pas l'image entière : ça exclut le
                                         // sol/les bâtiments qui polluent le signal si l'appareil
                                         // n'est pas parfaitement à la verticale.
-                                        results = classifier.classify(bitmap.centerCrop(FRAMING_FRACTION))
+                                        val classified = classifier.classify(bitmap.centerCrop(FRAMING_FRACTION))
+                                        results = classified
                                         lastFrame = bitmap
+
+                                        // Confiance suffisante : on fige le résultat au lieu de
+                                        // continuer à le remplacer toutes les 800ms.
+                                        val topConfidence = classified.firstOrNull()?.confidence ?: 0f
+                                        if (topConfidence >= AUTO_LOCK_CONFIDENCE) {
+                                            isAutoLocked = true
+                                            isPaused = true
+                                        }
                                     }
                                 }
                             }
@@ -287,7 +304,10 @@ fun CameraScreen() {
                 }
             }
 
-            Button(onClick = { isPaused = !isPaused }) {
+            Button(onClick = {
+                isPaused = !isPaused
+                if (!isPaused) isAutoLocked = false
+            }) {
                 Icon(
                     if (isPaused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
                     contentDescription = null,
@@ -327,6 +347,15 @@ fun CameraScreen() {
                                 .padding(vertical = 8.dp),
                         )
                         Text("Confiance : ${percent(top.confidence)} %")
+                        if (isAutoLocked) {
+                            Text(
+                                "Résultat figé automatiquement (confiance ≥ ${percent(AUTO_LOCK_CONFIDENCE)} %). " +
+                                    "Appuie sur « Reprendre » pour relancer la détection.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
 
                         val alternatives = results.drop(1)
                         if (alternatives.isNotEmpty()) {
